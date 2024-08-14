@@ -1,3 +1,4 @@
+```
 currency-app/
 │
 ├── cmd/
@@ -40,3 +41,4 @@ currency-app/
 ├── go.sum
 ├── README.md
 └── Makefile
+```
