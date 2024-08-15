@@ -1,6 +1,8 @@
 {
   "update_interval": 10,
-  "save_formats": "csv",
+  "icon_path": "assets/icon.svg",
+  "log_path": "logs/log.txt",
+  "save_formats": ["csv"],
   "currencies": ["USD", "EUR"],
   "current_rates_url": "https://api.privatbank.ua/p24api/pubinfo?json&exchange&coursid=5",
   "monthly_rates_url": "https://api.privatbank.ua/p24api/exchange_rates?json&date="

@@ -16,7 +16,7 @@ type ExchangeRate struct {
 	Sale         string `json:"sale"`
 }
 
-func GetCurrentRates(cfg *config.Config) ([]ExchangeRate, error) {
+func GetCurrentRates(cfg *config.Config, currency []string) ([]ExchangeRate, error) {
 	resp, err := http.Get(cfg.CurrentRatesURL)
 	if err != nil {
 		return nil, err
@@ -28,7 +28,7 @@ func GetCurrentRates(cfg *config.Config) ([]ExchangeRate, error) {
 		return nil, err
 	}
 
-	return filterRates(rates, cfg.Currencies), nil
+	return filterRates(rates, currency), nil
 }
 
 func GetMonthlyRates(cfg *config.Config) (map[string][]ExchangeRate, error) {

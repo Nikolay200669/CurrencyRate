@@ -6,11 +6,13 @@ import (
 )
 
 type Config struct {
-	UpdateInterval  int      `json:"update_interval"`
-	SaveFormats     string   `json:"save_formats"`
+	UpdateInterval  int64    `json:"update_interval"`
+	SaveFormats     []string `json:"save_formats"`
 	Currencies      []string `json:"currencies"`
 	CurrentRatesURL string   `json:"current_rates_url"`
 	MonthlyRatesURL string   `json:"monthly_rates_url"`
+	IconPath        string   `json:"icon_path"`
+	LogPath         string   `json:"log_path"`
 }
 
 func LoadConfig(filename string) (*Config, error) {

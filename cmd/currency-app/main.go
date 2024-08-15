@@ -6,6 +6,7 @@ import (
 
 	"github.com/Nikolay200669/CurrencyRate/internal/config"
 	"github.com/Nikolay200669/CurrencyRate/internal/tray"
+	"github.com/Nikolay200669/CurrencyRate/internal/utils"
 	"github.com/Nikolay200669/CurrencyRate/pkg/autostart"
 	"github.com/getlantern/systray"
 )
@@ -33,6 +34,11 @@ func main() {
 	cfg, err := config.LoadConfig("configs/config.json")
 	if err != nil {
 		log.Fatalf("Error loading configuration: %v", err)
+	}
+
+	p := cfg.LogPath
+	if err := utils.InitLoggers(p); err != nil {
+		log.Fatalf("Error initializing loggers: %v", err)
 	}
 
 	// Start the system tray application

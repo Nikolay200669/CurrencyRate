@@ -26,10 +26,11 @@ func SaveRatesToCSV(rates []api.ExchangeRate, filename string) error {
 	}
 
 	// Write data
-	date := time.Now().Format("2006-01-02")
+	date := time.Now().Unix()
+	dateStr := fmt.Sprintf("%d", date)
 	for _, rate := range rates {
 		row := []string{
-			date,
+			dateStr,
 			rate.Currency,
 			rate.Buy,
 			rate.Sale,

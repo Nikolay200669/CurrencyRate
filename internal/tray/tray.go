@@ -1,73 +1,119 @@
 package tray
 
 import (
-	"fmt"
+	"time"
 
 	"github.com/Nikolay200669/CurrencyRate/internal/api"
 	"github.com/Nikolay200669/CurrencyRate/internal/config"
 	"github.com/Nikolay200669/CurrencyRate/internal/currency"
 	"github.com/Nikolay200669/CurrencyRate/internal/storage"
+	"github.com/Nikolay200669/CurrencyRate/internal/utils"
 
 	"github.com/getlantern/systray"
 )
 
+var (
+	cfg                *config.Config
+	currencyMenuItems  map[string]*systray.MenuItem
+	updateTicker       *time.Ticker
+	selectedCurrencies []string
+)
+
 func Initialize(cfg *config.Config) {
-	systray.SetIcon(getIcon())
+	selectedCurrencies = []string{"USD"}
+	systray.SetIcon(utils.GetIcon(cfg.IconPath))
 	systray.SetTitle("Currency App")
 	systray.SetTooltip("Currency Exchange Rates")
 
 	mRefresh := systray.AddMenuItem("Refresh Rates", "Get current exchange rates")
-	mMonthly := systray.AddMenuItem("Monthly Rates", "Get exchange rates for the last month")
+	mCurrencies := mRefresh.AddSubMenuItem("Select Currencies", "Choose currencies to track")
 	systray.AddSeparator()
 	mQuit := systray.AddMenuItem("Quit", "Quit the application")
+
+	currencyMenuItems = make(map[string]*systray.MenuItem)
+	for _, curr := range cfg.Currencies {
+		menuItem := mCurrencies.AddSubMenuItem(curr, "Toggle "+curr)
+		currencyMenuItems[curr] = menuItem
+		if curr == "USD" {
+			menuItem.Check()
+		}
+	}
 
 	go func() {
 		for {
 			select {
 			case <-mRefresh.ClickedCh:
-				refreshRates(cfg)
-			case <-mMonthly.ClickedCh:
-				getMonthlyRates(cfg)
+				refreshRates()
 			case <-mQuit.ClickedCh:
 				systray.Quit()
 				return
+			default:
+				handleCurrencySelection()
 			}
+		}
+	}()
+
+	startRateUpdater(cfg.UpdateInterval)
+}
+
+func handleCurrencySelection() {
+	for curr, menuItem := range currencyMenuItems {
+		select {
+		case <-menuItem.ClickedCh:
+			if menuItem.Checked() {
+				menuItem.Uncheck()
+				selectedCurrencies = removeString(selectedCurrencies, curr)
+			} else {
+				menuItem.Check()
+				selectedCurrencies = append(selectedCurrencies, curr)
+			}
+			utils.LogInfo("Currency %s selection changed", curr)
+			if len(selectedCurrencies) == 1 && updateTicker == nil {
+				startRateUpdater(cfg.UpdateInterval)
+			} else if len(selectedCurrencies) == 0 {
+				stopRateUpdater()
+			}
+		default:
+		}
+	}
+}
+
+func startRateUpdater(dur int64) {
+	updateTicker = time.NewTicker(time.Duration(dur) * time.Second)
+	go func() {
+		for range updateTicker.C {
+			refreshRates()
 		}
 	}()
 }
 
-func refreshRates(cfg *config.Config) {
-	rates, err := api.GetCurrentRates(cfg.Currencies)
+func stopRateUpdater() {
+	if updateTicker != nil {
+		updateTicker.Stop()
+		updateTicker = nil
+	}
+}
+
+func refreshRates() {
+	rates, err := api.GetCurrentRates(cfg, selectedCurrencies)
 	if err != nil {
-		fmt.Println("Error fetching current rates:", err)
+		utils.LogError("Failed to get current rates: %v", err)
 		return
 	}
 
-	err = storage.SaveRates(rates, cfg.SaveFormats)
+	err = storage.SaveRates(rates)
 	if err != nil {
-		fmt.Println("Error saving rates:", err)
+		utils.LogError("Failed to save rates: %v", err)
 	}
 
 	currency.UpdateTrayMenu(rates)
 }
 
-func getMonthlyRates(cfg *config.Config) {
-	rates, err := api.GetMonthlyRates(cfg.Currencies)
-	if err != nil {
-		fmt.Println("Error fetching monthly rates:", err)
-		return
+func removeString(slice []string, s string) []string {
+	for i, v := range slice {
+		if v == s {
+			return append(slice[:i], slice[i+1:]...)
+		}
 	}
-
-	err = storage.SaveMonthlyRates(rates, cfg.SaveFormats)
-	if err != nil {
-		fmt.Println("Error saving monthly rates:", err)
-	}
-
-	currency.DisplayMonthlyRates(rates)
-}
-
-func getIcon() []byte {
-	// Implementation to load and return the icon bytes
-	// This could be reading from a file in the assets directory
-	return []byte{}
+	return slice
 }
